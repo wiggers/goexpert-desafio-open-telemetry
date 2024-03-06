@@ -1,4 +1,4 @@
-POST http://localhost:8000/temperature?zipcode=89214106 HTTP/1.1
+POST http://localhost:8000/temperature HTTP/1.1
 Host: localhost:8000
 Content-Type: application/json
 
