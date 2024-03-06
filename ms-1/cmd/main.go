@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -18,14 +17,15 @@ func main() {
 
 	config := configs.LoadConfig(".")
 
-	url := flag.String("zipkin", config.Zipkin, "zipkin url")
-	flag.Parse()
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
 	openTel := opentel.NewOpenTel()
-	shutdown, err := openTel.InitTracer(*url)
+
+	shutdown, err := openTel.InitProvider("temperature-ms-1", "localhost:4317")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,6 +40,13 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/temperature", controller.FindTemperature)
 
-	http.ListenAndServe(":"+config.WebServerPort, router)
+	go http.ListenAndServe(":"+config.WebServerPort, router)
+
+	select {
+	case <-sigCh:
+		log.Println("ctrl+C pressed..")
+	case <-ctx.Done():
+		log.Println("Shutting down")
+	}
 
 }

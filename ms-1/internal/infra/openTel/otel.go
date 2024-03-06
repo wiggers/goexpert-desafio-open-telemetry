@@ -2,15 +2,17 @@ package opentel
 
 import (
 	"context"
-	"log"
-	"os"
+	"fmt"
+	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/zipkin"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type OpenTel struct {
@@ -21,35 +23,43 @@ func NewOpenTel() *OpenTel {
 	return &OpenTel{}
 }
 
-var logger = log.New(os.Stderr, "zipkin-example", log.Ldate|log.Ltime|log.Llongfile)
+func (o *OpenTel) InitProvider(serviceName, collectorURL string) (func(context.Context) error, error) {
+	ctx := context.Background()
 
-// initTracer creates a new trace provider instance and registers it as global trace provider.
-func (o *OpenTel) InitTracer(url string) (func(context.Context) error, error) {
-	// Create Zipkin Exporter and install it as a global tracer.
-	//
-	// For demoing purposes, always sample. In a production application, you should
-	// configure the sampler to a trace.ParentBased(trace.TraceIDRatioBased) set at the desired
-	// ratio.
-	exporter, err := zipkin.New(
-		url,
-		zipkin.WithLogger(logger),
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceName(serviceName),
+		),
 	)
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	batcher := sdktrace.NewBatchSpanProcessor(exporter)
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithSpanProcessor(batcher),
-		sdktrace.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName("zipkin-test"),
-		)),
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, collectorURL,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
 	)
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
 
-	return tp.Shutdown, nil
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(bsp),
+	)
+	otel.SetTracerProvider(tracerProvider)
+
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+	return tracerProvider.Shutdown, nil
 }

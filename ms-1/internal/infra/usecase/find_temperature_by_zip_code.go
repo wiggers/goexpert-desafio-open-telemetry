@@ -28,10 +28,10 @@ func NewTemperatureByZipCode(ctx context.Context, Adapter entity.AdapterInterfac
 	return &TemperatureByZipCode{Ctx: ctx, Adapter: Adapter}
 }
 
-func (temp *TemperatureByZipCode) Execute(ctxTest context.Context, input ZipCodeInputDto) (ZipCodeOutputDto, error) {
+func (temp *TemperatureByZipCode) Execute(ctx context.Context, input ZipCodeInputDto) (ZipCodeOutputDto, error) {
 
-	tr := otel.GetTracerProvider().Tracer("component-main")
-	ctx, span := tr.Start(ctxTest, "total-ms-1",
+	tracer := otel.Tracer("ms1")
+	ctx, span := tracer.Start(ctx, "total-ms-1",
 		trace.WithSpanKind(trace.SpanKindServer))
 
 	zipcode, err := entity.NewZipCode(input.ZipCode)

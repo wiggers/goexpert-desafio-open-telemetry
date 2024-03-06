@@ -23,7 +23,7 @@ func NewWeatherApi() *currentWeather {
 }
 
 func (c *currentWeather) FindWeather(ctx context.Context, city *entity.City) (*entity.Weather, error) {
-	dataWeather, err := lib.CallHttpGet(ctx, "https://api.weatherapi.com/v1/current.json?key=2345b10c20c34affa4c170312241602&q="+city.City)
+	dataWeather, err := lib.CallHttpGetWeather(ctx, city.City)
 	if err != nil {
 		log.Println(err)
 		return nil, errors.New("internal error")

@@ -7,7 +7,8 @@ import (
 	"github.com/wiggers/goexpert/desafio/temperature-ms-1/internal/entity"
 	"github.com/wiggers/goexpert/desafio/temperature-ms-1/internal/infra/adapter"
 	"github.com/wiggers/goexpert/desafio/temperature-ms-1/internal/infra/usecase"
-	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type findTemperatureByZipCodeController struct {
@@ -22,13 +23,19 @@ func NewFindTemperatureByZipCodeController() *findTemperatureByZipCodeController
 func (f *findTemperatureByZipCodeController) FindTemperature(w http.ResponseWriter, r *http.Request) {
 
 	var dto usecase.ZipCodeInputDto
-	dto.ZipCode = r.URL.Query().Get("zipcode")
+	err := json.NewDecoder(r.Body).Decode(&dto)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	if dto.ZipCode == "" {
 		http.Error(w, "invalid zip code", http.StatusBadRequest)
 		return
 	}
 
-	ctx := baggage.ContextWithoutBaggage(r.Context())
+	carrier := propagation.HeaderCarrier(r.Header)
+	ctx := r.Context()
+	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
 
 	findTemperatureByZip := usecase.NewTemperatureByZipCode(ctx, f.Adapter)
 	response, err := findTemperatureByZip.Execute(ctx, dto)

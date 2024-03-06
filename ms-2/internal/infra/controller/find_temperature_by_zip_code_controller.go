@@ -7,7 +7,8 @@ import (
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/entity"
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/infra/adapter"
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/usecase"
-	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type findTemperatureByZipCodeController struct {
@@ -22,7 +23,7 @@ type sendError struct {
 
 func NewFindTemperatureByZipCodeController() *findTemperatureByZipCodeController {
 
-	city := adapter.NewBrasilApiData()
+	city := adapter.NewViaCepApiData()
 	weather := adapter.NewWeatherApi()
 
 	return &findTemperatureByZipCodeController{
@@ -33,7 +34,9 @@ func NewFindTemperatureByZipCodeController() *findTemperatureByZipCodeController
 
 func (f *findTemperatureByZipCodeController) FindTemperature(w http.ResponseWriter, r *http.Request) {
 
-	ctx := baggage.ContextWithoutBaggage(r.Context())
+	carrier := propagation.HeaderCarrier(r.Header)
+	ctx := r.Context()
+	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
 
 	var dto usecase.ZipCodeInputDto
 	dto.ZipCode = r.URL.Query().Get("zipcode")

@@ -6,7 +6,6 @@ import (
 
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/entity"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type ZipCodeInputDto struct {
@@ -41,8 +40,8 @@ func (temp *TemperatureByZipCode) Execute(input ZipCodeInputDto) (ZipCodeOutputD
 		return ZipCodeOutputDto{}, err
 	}
 
-	tr := otel.GetTracerProvider().Tracer("component-city")
-	ctx, span := tr.Start(temp.Ctx, "find-city", trace.WithSpanKind(trace.SpanKindServer))
+	tracer := otel.Tracer("ms2")
+	ctx, span := tracer.Start(temp.Ctx, "find-city")
 	city, err := temp.CityAdapter.FindCity(ctx, &zipcode)
 	span.End()
 	if err != nil {
@@ -53,10 +52,9 @@ func (temp *TemperatureByZipCode) Execute(input ZipCodeInputDto) (ZipCodeOutputD
 		return ZipCodeOutputDto{}, errors.New("can not find zip code")
 	}
 
-	tr1 := otel.GetTracerProvider().Tracer("component-weather")
-	ctx, span = tr1.Start(ctx, "find-weather", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span1 := tracer.Start(ctx, "find-weather")
 	weather, err := temp.WeatherAdapter.FindWeather(ctx, city)
-	span.End()
+	span1.End()
 
 	if err != nil {
 		return ZipCodeOutputDto{}, err

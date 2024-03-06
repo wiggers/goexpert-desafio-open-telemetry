@@ -2,31 +2,31 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/wiggers/goexpert/desafio/1-temperatura/configs"
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/infra/controller"
 	opentel "github.com/wiggers/goexpert/desafio/1-temperatura/internal/infra/openTel"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 )
 
 func main() {
 
 	config := configs.LoadConfig(".")
 
-	url := flag.String("zipkin", config.Zipkin, "zipkin url")
-	flag.Parse()
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
 	openTel := opentel.NewOpenTel()
-	shutdown, err := openTel.InitTracer(*url)
+
+	shutdown, err := openTel.InitProvider("temperature-ms-2", "localhost:4317")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,9 +39,16 @@ func main() {
 	controller := controller.NewFindTemperatureByZipCodeController()
 
 	router := mux.NewRouter()
-	router.Use(otelmux.Middleware(openTel.ServiceName))
 	router.HandleFunc("/temperature", controller.FindTemperature)
+	router.Handle("/metrics", promhttp.Handler())
 
-	http.ListenAndServe(":"+config.WebServerPort, router)
+	go http.ListenAndServe(":"+config.WebServerPort, router)
+
+	select {
+	case <-sigCh:
+		log.Println("ctrl+C pressed..")
+	case <-ctx.Done():
+		log.Println("Shutting down")
+	}
 
 }
