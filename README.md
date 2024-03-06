@@ -28,7 +28,9 @@ Acessar o zipkin através do endereço:
 	e clicar em RUN QUERY para analisar o tracing do endpoint executado  
 
 O Tracing também pode ser analisado através do Jaeger
-    
+
+    http://localhost:16686/search
+
 
 
 **Descrição do Desafio**
