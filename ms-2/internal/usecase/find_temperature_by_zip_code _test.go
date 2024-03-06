@@ -35,7 +35,7 @@ func TestGivenExistingZipCode_ThenShouldReceivedTemperatureWithParameters(t *tes
 	cityAdapter.On("FindCity", mock.MatchedBy(func(context.Context) bool { return true }), &entity.ZipCode{Cep: "88807278"}).Return(&entity.City{City: "Joinville"}, nil)
 	weatherAdapter.On("FindWeather", mock.MatchedBy(func(context.Context) bool { return true }), &entity.City{City: "Joinville"}).Return(&entity.Weather{Temp_C: 29}, nil)
 
-	findTemperatureByZip := NewTemperatureByZipCode(&cityAdapter, &weatherAdapter)
+	findTemperatureByZip := NewTemperatureByZipCode(context.Background(), &cityAdapter, &weatherAdapter)
 	response, err := findTemperatureByZip.Execute(zipcode)
 	assert.Nil(t, err)
 	assert.Equal(t, response.Temp_C, float32(29))
@@ -49,7 +49,7 @@ func TestGivenAInvalidZipCode_ThenShouldReceiveAnError(t *testing.T) {
 	var zipcode ZipCodeInputDto
 	zipcode.ZipCode = "AAAAAAAAA"
 
-	findTemperatureByZip := NewTemperatureByZipCode(&cityAdapter, &weatherAdapter)
+	findTemperatureByZip := NewTemperatureByZipCode(context.Background(), &cityAdapter, &weatherAdapter)
 	response, err := findTemperatureByZip.Execute(zipcode)
 	assert.Error(t, err, " invalid zipcode")
 	assert.Equal(t, response.Temp_C, float32(0.0))
@@ -64,7 +64,7 @@ func TestGivenAZipCodeNotExisting_ThenShouldReceiveAnError(t *testing.T) {
 	zipcode.ZipCode = "99999999"
 	cityAdapter.On("FindCity", mock.MatchedBy(func(context.Context) bool { return true }), &entity.ZipCode{Cep: "99999999"}).Return(&entity.City{City: ""}, nil)
 
-	findTemperatureByZip := NewTemperatureByZipCode(&cityAdapter, &weatherAdapter)
+	findTemperatureByZip := NewTemperatureByZipCode(context.Background(), &cityAdapter, &weatherAdapter)
 	response, err := findTemperatureByZip.Execute(zipcode)
 	assert.Error(t, err, "can not find zip code")
 	assert.Equal(t, response.Temp_C, float32(0.0))

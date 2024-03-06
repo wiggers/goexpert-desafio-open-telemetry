@@ -5,7 +5,7 @@
 
 Executar o comando: 
 	
-		docker-compose up --detach zipkin-collector zipkin-client
+		docker-compose up -d
 
 Executar ambos os projetos:<br/> 
 	pasta cmd no projeto MS-1 (ms-1/cmd) : <code>go run main.go</code> <br/> 
@@ -14,14 +14,21 @@ Executar ambos os projetos:<br/>
 
 Executar a chamada para o endpoint no **MS-1** (exemplo existente na pasta API do MS-1): 
 	
-	localhost:8000/temperature?zipcode={zipcode}	
-	ex: localhost:8000/temperature?zipcode=89214106
+	(POST) - localhost:8000/temperature
+	
+    ex: POST http://localhost:8000/temperature
+            {
+                "cep":"01153000"
+            }
 
  
 Acessar o zipkin através do endereço: 
 	
 	http://localhost:9411/zipkin/   
 	e clicar em RUN QUERY para analisar o tracing do endpoint executado  
+
+O Tracing também pode ser analisado através do Jaeger
+    
 
 
 **Descrição do Desafio**
