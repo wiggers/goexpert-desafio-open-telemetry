@@ -1,38 +1,3 @@
-**Como Executar Localmente**
-	
-	Porta MS-1: 8000
-	Porta MS-2: 8080
-
-Executar o comando: 
-	
-		docker-compose up -d
-
-Executar ambos os projetos:<br/> 
-	pasta cmd no projeto MS-1 (ms-1/cmd) : <code>go run main.go</code> <br/> 
-	pasta cmd no projeto MS-2 (ms-2/cmd) : <code>go run main.go</code>
-
-
-Executar a chamada para o endpoint no **MS-1** (exemplo existente na pasta API do MS-1): 
-	
-	(POST) - localhost:8000/temperature
-	
-    ex: POST http://localhost:8000/temperature
-            {
-                "cep":"01153000"
-            }
-
- 
-Acessar o zipkin através do endereço: 
-	
-	http://localhost:9411/zipkin/   
-	e clicar em RUN QUERY para analisar o tracing do endpoint executado  
-
-O Tracing também pode ser analisado através do Jaeger
-
-    http://localhost:16686/search
-
-
-
 **Descrição do Desafio**
     
     Objetivo: Desenvolver um sistema em Go que receba um CEP, identifica a cidade e retorna o clima atual (temperatura em graus celsius, fahrenheit e kelvin) juntamente com a cidade. Esse sistema deverá implementar OTEL(Open Telemetry) e Zipkin.
@@ -82,3 +47,47 @@ O Tracing também pode ser analisado através do Jaeger
     O código-fonte completo da implementação.
     Documentação explicando como rodar o projeto em ambiente dev.
     Utilize docker/docker-compose para que possamos realizar os testes de sua aplicação.
+
+
+
+**Como Executar Localmente**
+	
+	Porta MS-1: 8000
+	Porta MS-2: 8080
+
+Executar o comando: 
+	
+		docker-compose up -d
+
+Executar ambos os projetos:<br/> 
+	pasta cmd no projeto MS-1 (ms-1/cmd) : <code>go run main.go</code> <br/> 
+	pasta cmd no projeto MS-2 (ms-2/cmd) : <code>go run main.go</code>
+
+
+Executar a chamada para o endpoint no **MS-1** (exemplo existente na pasta API do MS-1): 
+	
+	(POST) - localhost:8000/temperature
+	
+    ex: POST http://localhost:8000/temperature
+            {
+                "cep":"01153000"
+            }
+
+ 
+Acessar o **Zipkin** ou **Jaeger** para verificar o tracing através do endereço: 
+	
+	http://localhost:9411/zipkin/   
+ 	http://localhost:16686/search/
+	 
+
+Já as métricas estão sendo colhidas pelo **Prometheus** e podem ser analisadas através do **Grafana** bastando apenas entrar no Grafana através do link abaixo e adicinando o datasource.
+
+	http://localhost:3000/
+
+	
+
+    
+
+
+
+
