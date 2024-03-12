@@ -7,6 +7,7 @@ import (
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/entity"
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/infra/adapter"
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/usecase"
+	lib "github.com/wiggers/goexpert/desafio/1-temperatura/pkg"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
@@ -14,11 +15,6 @@ import (
 type findTemperatureByZipCodeController struct {
 	City    entity.CityAdapterInterface
 	Weather entity.WeatherAdapterInterface
-}
-
-type sendError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }
 
 func NewFindTemperatureByZipCodeController() *findTemperatureByZipCodeController {
@@ -41,32 +37,21 @@ func (f *findTemperatureByZipCodeController) FindTemperature(w http.ResponseWrit
 	var dto usecase.ZipCodeInputDto
 	dto.ZipCode = r.URL.Query().Get("zipcode")
 	if dto.ZipCode == "" {
-		http.Error(w, "invalid zip code", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(lib.Response{Code: http.StatusBadRequest, Message: "Invalid zip code"})
 		return
 	}
 
 	findTemperatureByZip := usecase.NewTemperatureByZipCode(ctx, f.City, f.Weather)
-
 	response, err := findTemperatureByZip.Execute(dto)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		if err.Error() == "invalid zip code" {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			json.NewEncoder(w).Encode(sendError{Message: err.Error(), Code: http.StatusUnprocessableEntity})
-			return
-		}
-
-		if err.Error() == "can not find zip code" {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(sendError{Message: err.Error(), Code: http.StatusUnprocessableEntity})
-			return
-		}
-
-		json.NewEncoder(w).Encode(sendError{Message: err.Error(), Code: http.StatusInternalServerError})
+		w.WriteHeader(err.Code)
+		json.NewEncoder(w).Encode(lib.Response{Code: err.Code, Message: err.Message})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(lib.Response{Code: http.StatusOK, Message: response})
 }

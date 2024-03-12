@@ -26,7 +26,7 @@ func main() {
 
 	openTel := opentel.NewOpenTel()
 
-	shutdown, err := openTel.InitProvider("temperature-ms-2", "localhost:4317")
+	shutdown, err := openTel.InitProvider("temperature-ms-2", config.UrlCollectior)
 	if err != nil {
 		log.Fatal(err)
 	}

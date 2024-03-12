@@ -2,8 +2,10 @@ package usecase
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/wiggers/goexpert/desafio/temperature-ms-1/internal/entity"
+	lib "github.com/wiggers/goexpert/desafio/temperature-ms-1/pkg"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -28,7 +30,7 @@ func NewTemperatureByZipCode(ctx context.Context, Adapter entity.AdapterInterfac
 	return &TemperatureByZipCode{Ctx: ctx, Adapter: Adapter}
 }
 
-func (temp *TemperatureByZipCode) Execute(ctx context.Context, input ZipCodeInputDto) (ZipCodeOutputDto, error) {
+func (temp *TemperatureByZipCode) Execute(ctx context.Context, input ZipCodeInputDto) (ZipCodeOutputDto, *lib.AppError) {
 
 	tracer := otel.Tracer("ms1")
 	ctx, span := tracer.Start(ctx, "total-ms-1",
@@ -36,13 +38,21 @@ func (temp *TemperatureByZipCode) Execute(ctx context.Context, input ZipCodeInpu
 
 	zipcode, err := entity.NewZipCode(input.ZipCode)
 	if err != nil {
-		return ZipCodeOutputDto{}, err
+		return ZipCodeOutputDto{}, &lib.AppError{ErrorMsg: err, Message: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	temperature, err := temp.Adapter.FindData(ctx, &zipcode)
 	span.End()
+
 	if err != nil {
-		return ZipCodeOutputDto{}, err
+		if err.Error() == "Invalid zip code" {
+			return ZipCodeOutputDto{}, &lib.AppError{ErrorMsg: err, Message: err.Error(), Code: http.StatusUnprocessableEntity}
+		}
+		if err.Error() == "Can not find zipcode" {
+			return ZipCodeOutputDto{}, &lib.AppError{ErrorMsg: err, Message: err.Error(), Code: http.StatusNotFound}
+		}
+
+		return ZipCodeOutputDto{}, &lib.AppError{ErrorMsg: err, Message: err.Error(), Code: http.StatusInternalServerError}
 	}
 
 	return ZipCodeOutputDto{City: temperature.City, Temp_C: temperature.Temp_C, Temp_F: temperature.Temp_F, Temp_K: temperature.Temp_K}, nil

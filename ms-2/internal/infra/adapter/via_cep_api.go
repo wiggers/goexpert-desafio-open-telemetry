@@ -3,7 +3,6 @@ package adapter
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/entity"
@@ -20,10 +19,11 @@ func NewViaCepApiData() *ViaCepApiData {
 
 func (b *ViaCepApiData) FindCity(ctx context.Context, zipcode *entity.ZipCode) (*entity.City, error) {
 
-	dataCep, err := lib.CallHttpGet(ctx, "https://viacep.com.br/ws/"+zipcode.Cep+"/json/")
+	params := map[string]string{}
+	dataCep, err := lib.CallHttpGet(ctx, "https://viacep.com.br/ws/"+zipcode.Cep+"/json/", params)
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("internal error")
+		return nil, err
 	}
 
 	var data ViaCepApiData
@@ -31,7 +31,7 @@ func (b *ViaCepApiData) FindCity(ctx context.Context, zipcode *entity.ZipCode) (
 
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("internal error")
+		return nil, err
 	}
 
 	return &entity.City{City: data.City}, nil

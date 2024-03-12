@@ -13,13 +13,17 @@ import (
 )
 
 type Ms2 struct {
-	Error   Problem
-	Success Body
+	Success Success
+	Error   Error
 }
 
-type Problem struct {
-	Code    int
+type Error struct {
+	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+type Success struct {
+	Message Body `json:"message"`
 }
 
 type Body struct {
@@ -34,8 +38,6 @@ func NewMs2() *Ms2 {
 }
 
 func (b *Ms2) FindData(ctx context.Context, zipcode *entity.ZipCode) (*entity.Temperature, error) {
-
-	//http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	client := http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/temperature?zipcode="+zipcode.Cep, nil)
@@ -55,14 +57,13 @@ func (b *Ms2) FindData(ctx context.Context, zipcode *entity.ZipCode) (*entity.Te
 
 	var data Ms2
 	if resp.StatusCode == http.StatusOK {
-
 		err = json.Unmarshal(body, &data.Success)
 		if err != nil {
 			log.Println(err)
 			return nil, errors.New("internal error")
 		}
 
-		return &entity.Temperature{City: data.Success.City, Temp_C: data.Success.Temp_C, Temp_F: data.Success.Temp_F, Temp_K: data.Success.Temp_K}, nil
+		return &entity.Temperature{City: data.Success.Message.City, Temp_C: data.Success.Message.Temp_C, Temp_F: data.Success.Message.Temp_F, Temp_K: data.Success.Message.Temp_K}, nil
 
 	}
 

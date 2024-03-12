@@ -8,6 +8,7 @@ import (
 	"os/signal"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/wiggers/goexpert/desafio/temperature-ms-1/configs"
 	"github.com/wiggers/goexpert/desafio/temperature-ms-1/internal/infra/controller"
 	opentel "github.com/wiggers/goexpert/desafio/temperature-ms-1/internal/infra/openTel"
@@ -25,7 +26,7 @@ func main() {
 
 	openTel := opentel.NewOpenTel()
 
-	shutdown, err := openTel.InitProvider("temperature-ms-1", "localhost:4317")
+	shutdown, err := openTel.InitProvider("temperature-ms-1", config.UrlCollectior)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,6 +40,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/temperature", controller.FindTemperature)
+	router.Handle("/metrics", promhttp.Handler())
 
 	go http.ListenAndServe(":"+config.WebServerPort, router)
 

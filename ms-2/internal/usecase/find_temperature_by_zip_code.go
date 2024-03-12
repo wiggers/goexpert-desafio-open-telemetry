@@ -3,8 +3,10 @@ package usecase
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/wiggers/goexpert/desafio/1-temperatura/internal/entity"
+	lib "github.com/wiggers/goexpert/desafio/1-temperatura/pkg"
 	"go.opentelemetry.io/otel"
 )
 
@@ -33,11 +35,11 @@ func NewTemperatureByZipCode(ctx context.Context, CityAdapter entity.CityAdapter
 	}
 }
 
-func (temp *TemperatureByZipCode) Execute(input ZipCodeInputDto) (ZipCodeOutputDto, error) {
+func (temp *TemperatureByZipCode) Execute(input ZipCodeInputDto) (ZipCodeOutputDto, *lib.AppError) {
 
 	zipcode, err := entity.NewZipCode(input.ZipCode)
 	if err != nil {
-		return ZipCodeOutputDto{}, err
+		return ZipCodeOutputDto{}, lib.NewAppError(err, "Invalid zip code", http.StatusUnprocessableEntity)
 	}
 
 	tracer := otel.Tracer("ms2")
@@ -45,11 +47,11 @@ func (temp *TemperatureByZipCode) Execute(input ZipCodeInputDto) (ZipCodeOutputD
 	city, err := temp.CityAdapter.FindCity(ctx, &zipcode)
 	span.End()
 	if err != nil {
-		return ZipCodeOutputDto{}, err
+		return ZipCodeOutputDto{}, lib.NewAppError(err, "Internal Server Error", http.StatusInternalServerError)
 	}
 
 	if !city.Exist() {
-		return ZipCodeOutputDto{}, errors.New("can not find zip code")
+		return ZipCodeOutputDto{}, lib.NewAppError(errors.New("can not find zip code"), "Can not find zip code", http.StatusNotFound)
 	}
 
 	ctx, span1 := tracer.Start(ctx, "find-weather")
@@ -57,7 +59,7 @@ func (temp *TemperatureByZipCode) Execute(input ZipCodeInputDto) (ZipCodeOutputD
 	span1.End()
 
 	if err != nil {
-		return ZipCodeOutputDto{}, err
+		return ZipCodeOutputDto{}, lib.NewAppError(err, "Internal Server Error", http.StatusInternalServerError)
 	}
 
 	resul := ZipCodeOutputDto{
